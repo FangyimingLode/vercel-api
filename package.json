@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/shfshanyue/vercel-api#readme",
   "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.11.0",
+    "axios": "^1.3.3",
     "micro": "^9.3.4"
   }
 }
