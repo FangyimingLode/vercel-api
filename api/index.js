@@ -2,7 +2,7 @@
 // const aircode = require("aircode");
 const lark = require("@larksuiteoapi/node-sdk");
 var axios = require("axios");
-const EventDB = aircode.db.table("event");
+// const EventDB = aircode.db.table("event");
 
 // 如果你不想配置环境变量，或环境变量不生效，则可以把结果填写在每一行最后的 "" 内部
 const FEISHU_APP_ID = "cli_a3a83d108eb9900b"|| ""; // 飞书的应用 ID
