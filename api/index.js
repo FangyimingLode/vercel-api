@@ -197,7 +197,7 @@ module.exports = async function (request, response) {
   if (request.body.type === "url_verification") {
     logger("deal url_verification");
     return response.status(200).json({
-      challenge: response.body.challenge,
+      challenge: request.body.challenge,
     });
   }
   // 自检查逻辑
