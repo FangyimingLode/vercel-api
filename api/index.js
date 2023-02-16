@@ -79,7 +79,6 @@ async function getOpenAIReply(content) {
     top_p: 1,
     stop: ["#"],
   });
-  logger(data, 'data')
   var config = {
     method: "post",
     maxBodyLength: Infinity,
@@ -108,7 +107,7 @@ async function getOpenAIReply(content) {
 }
 
 // 自检函数
-async function doctor() {
+async function doctor(response) {
   if (FEISHU_APP_ID === "") {
     return {
       code: 1,
@@ -173,7 +172,7 @@ async function doctor() {
       },
     };
   }
-  return {
+  return response.status(200).json({
     code: 0,
     message: {
       zh_CN:
@@ -188,12 +187,13 @@ async function doctor() {
       OPENAI_MAX_TOKEN,
       FEISHU_BOTNAME,
     },
-  };
+  });
 }
 
 module.exports = async function (params, context) {
-  logger(params)
   // 如果存在 encrypt 则说明配置了 encrypt key
+  logger("这里");
+
   if (params.encrypt) {
     logger("user enable encrypt key");
     return {
@@ -214,7 +214,8 @@ module.exports = async function (params, context) {
   // 自检查逻辑
   if (!params.hasOwnProperty("header") || context.trigger === "DEBUG") {
     logger("enter doctor");
-    return await doctor();
+    const result =  await doctor(context);
+    return result
   }
   // 处理飞书开放平台的事件回调
   if ((params.header.event_type === "im.message.receive_v1")) {
