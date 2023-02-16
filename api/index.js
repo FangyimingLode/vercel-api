@@ -109,17 +109,17 @@ async function getOpenAIReply(content) {
 // 自检函数
 async function doctor(response) {
   if (FEISHU_APP_ID === "") {
-    return {
+    return response.status(200).json({
       code: 1,
       message: {
         zh_CN: "你没有配置飞书应用的 AppID，请检查 & 部署后重试",
         en_US:
           "Here is no FeiSHu APP id, please check & re-Deploy & call again",
       },
-    };
+    });
   }
   if (!FEISHU_APP_ID.startsWith("cli_")) {
-    return {
+    return response.status(200).json({
       code: 1,
       message: {
         zh_CN:
@@ -127,38 +127,38 @@ async function doctor(response) {
         en_US:
           "Your FeiShu App ID is Wrong, Please Check and call again. FeiShu APPID must Start with cli",
       },
-    };
+    });
   }
   if (FEISHU_APP_SECRET === "") {
-    return {
+    return response.status(200).json({
       code: 1,
       message: {
         zh_CN: "你没有配置飞书应用的 Secret，请检查 & 部署后重试",
         en_US:
           "Here is no FeiSHu APP Secret, please check & re-Deploy & call again",
       },
-    };
+    });
   }
 
   if (FEISHU_BOTNAME === "") {
-    return {
+    return response.status(200).json({
       code: 1,
       message: {
         zh_CN: "你没有配置飞书应用的名称，请检查 & 部署后重试",
         en_US:
           "Here is no FeiSHu APP Name, please check & re-Deploy & call again",
       },
-    };
+    });
   }
 
   if (OPENAI_KEY === "") {
-    return {
+    return response.status(200).json({
       code: 1,
       message: {
         zh_CN: "你没有配置 OpenAI 的 Key，请检查 & 部署后重试",
         en_US: "Here is no OpenAI Key, please check & re-Deploy & call again",
       },
-    };
+    });
   }
 
   if (!OPENAI_KEY.startsWith("sk-")) {
@@ -190,37 +190,26 @@ async function doctor(response) {
   });
 }
 
-module.exports = async function (params, context) {
+module.exports = async function (request, response) {
   // 如果存在 encrypt 则说明配置了 encrypt key
   logger("这里");
-
-  if (params.encrypt) {
-    logger("user enable encrypt key");
-    return {
-      code: 1,
-      message: {
-        zh_CN: "你配置了 Encrypt Key，请关闭该功能。",
-        en_US: "You have open Encrypt Key Feature, please close it.",
-      },
-    };
-  }
   // 处理飞书开放平台的服务端校验
-  if (params.type === "url_verification") {
+  if (request.body.type === "url_verification") {
     logger("deal url_verification");
-    return {
-      challenge: params.challenge,
-    };
+    return response.status(200).json({
+      challenge: params.body.challenge,
+    });
   }
   // 自检查逻辑
-  if (!params.hasOwnProperty("header") || context.trigger === "DEBUG") {
+  if (!request.body.hasOwnProperty("header")) {
     logger("enter doctor");
-    const result =  await doctor(context);
+    const result =  await doctor(response);
     return result
   }
   // 处理飞书开放平台的事件回调
-  if ((params.header.event_type === "im.message.receive_v1")) {
-    let eventId = params.header.event_id;
-    let messageId = params.event.message.message_id;
+  if ((request.body.header.event_type === "im.message.receive_v1")) {
+    let eventId = request.body.header.event_id;
+    let messageId = request.body.event.message.message_id;
 
     // 对于同一个事件，只处理一次
     // const count = await EventDB.where({ event_id: eventId }).count();
@@ -231,46 +220,46 @@ module.exports = async function (params, context) {
     // await EventDB.save({ event_id: eventId });
 
     // 私聊直接回复
-    if (params.event.message.chat_type === "p2p") {
+    if (request.body.event.message.chat_type === "p2p") {
       // 不是文本消息，不处理
-      if (params.event.message.message_type != "text") {
+      if (request.body.event.message.message_type != "text") {
         await reply(messageId, "暂不支持其他类型的提问");
         logger("skip and reply not support");
-        return { code: 0 };
+        return response.status(200).json( { code: 0 });
       }
       // 是文本消息，直接回复
-      const userInput = JSON.parse(params.event.message.content);
+      const userInput = JSON.parse(request.body.event.message.content);
       const question = userInput.text.replace("@_user_1", "");
       const openaiResponse = await getOpenAIReply(question);
       await reply(messageId, openaiResponse);
-      return { code: 0 };
+      return response.status(200).json({ code: 0 });
     }
 
     // 群聊，需要 @ 机器人
-    if (params.event.message.chat_type === "group") {
+    if (request.body.event.message.chat_type === "group") {
       // 这是日常群沟通，不用管
       if (
-        !params.event.message.mentions ||
-        params.event.message.mentions.length === 0
+        !request.body.event.message.mentions ||
+        request.body.event.message.mentions.length === 0
       ) {
         logger("not process message without mention");
-        return { code: 0 };
+        return response.status(200).json({ code: 0 });
       }
       // 没有 mention 机器人，则退出。
-      if (params.event.message.mentions[0].name != FEISHU_BOTNAME) {
+      if (request.body.event.message.mentions[0].name != FEISHU_BOTNAME) {
         logger("bot name not equal first mention name ");
-        return { code: 0 };
+        return response.status(200).json({ code: 0 });
       }
-      const userInput = JSON.parse(params.event.message.content);
+      const userInput = JSON.parse(request.body.event.message.content);
       const question = userInput.text.replace("@_user_1", "");
       const openaiResponse = await getOpenAIReply(question);
       await reply(messageId, openaiResponse);
-      return { code: 0 };
+      return response.status(200).json({ code: 0 });
     }
   }
 
   logger("return without other log");
-  return {
+  return response.status(200).json({
     code: 2,
-  };
+  });
 };
